@@ -6,7 +6,7 @@
 [Downloads](https://github.com/AnimMouse/ffmpeg-autobuild/releases)
 
 ### Schedule
-At 11:07 on Sunday weekly or if someone starred this repository.
+At 08:07 on Sunday weekly.
 
 #### Release Retention Policy
 Release builds are kept for two years.

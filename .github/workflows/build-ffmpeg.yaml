@@ -115,8 +115,6 @@ jobs:
             echo "git-sha=$git_sha" >> $GITHUB_OUTPUT
             echo "helper-git-sha=$helper_sha" >> $GITHUB_OUTPUT
           fi
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
           
       - name: Check if there is newer commit
         if: '! inputs.force_build'

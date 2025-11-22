@@ -1530,8 +1530,8 @@ build_libbluray() {
         fi
       fi
     cd ../..
-    generic_configure "--disable-examples --disable-bdjava-jar"
-    do_make_and_make_install "CPPFLAGS=\"-Ddec_init=libbr_dec_init\""
+    get_local_meson_cross_with_propeties .
+    generic_meson_ninja_install "--prefix=${mingw_w64_x86_64_prefix} --libdir=${mingw_w64_x86_64_prefix}/lib"
   cd ..
 }
 

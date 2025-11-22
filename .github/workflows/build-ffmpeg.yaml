@@ -104,8 +104,14 @@ jobs:
       - name: Get current date & time after build
         id: date-time-after
         run: |
+          # full timestamp (matches prior usage)
           echo date-time=$(date +'%Y-%m-%d %H:%M') >> $GITHUB_OUTPUT
+          # tag-friendly timestamp (used for filenames/tags)
           echo date-time-tag=$(date +'%Y-%m-%d-%H-%M') >> $GITHUB_OUTPUT
+          # separate time portion so downstream jobs do not need split() (not available in expressions)
+          echo date-time-time=$(date +'%H:%M') >> $GITHUB_OUTPUT
+          # optionally expose date-only too
+          echo date-time-date=$(date +'%Y-%m-%d') >> $GITHUB_OUTPUT
           
       - name: Upload FFmpeg binaries
         uses: actions/upload-artifact@v5
@@ -122,6 +128,8 @@ jobs:
       date-time-before: ${{ steps.date-time-before.outputs.date-time }}
       date-time-after: ${{ steps.date-time-after.outputs.date-time }}
       date-time-after-tag: ${{ steps.date-time-after.outputs.date-time-tag }}
+      date-time-after-time: ${{ steps.date-time-after.outputs['date-time-time'] }}
+      date-time-after-date: ${{ steps.date-time-after.outputs['date-time-date'] }}
       git-date: ${{ steps.git-date.outputs.git-date }}
       
   archive:
@@ -152,19 +160,19 @@ jobs:
           subject-path: ff*.exe
           
       - name: 7-Zip FFmpeg binaries
-        run: 7z a -mx9 ffmpeg-${{ needs.check.outputs.git-sha-short }}-${{ needs.check.outputs.helper-git-sha-short }}-${{ matrix.os }}-nonfree.7z ff{mpeg,probe,play}.exe LICENSE
+        run: 7z a -mx9 ffmpeg-${{ needs.check.outputs['git-sha-short'] }}-${{ needs.check.outputs['helper-git-sha-short'] }}-${{ matrix.os }}-nonfree.7z ff{mpeg,probe,play}.exe LICENSE
         
       - name: Generate artifact attestation for FFmpeg archive
         if: '! inputs.no_release'
         uses: actions/attest-build-provenance@v3
         with:
-          subject-path: ffmpeg-${{ needs.check.outputs.git-sha-short }}-${{ needs.check.outputs.helper-git-sha-short }}-${{ matrix.os }}-nonfree.7z
+          subject-path: ffmpeg-${{ needs.check.outputs['git-sha-short'] }}-${{ needs.check.outputs['helper-git-sha-short'] }}-${{ matrix.os }}-nonfree.7z
           
       - name: Upload FFmpeg archive
         uses: actions/upload-artifact@v5
         with:
           name: ffmpeg-archive-${{ matrix.os }}
-          path: ffmpeg-${{ needs.check.outputs.git-sha-short }}-${{ needs.check.outputs.helper-git-sha-short }}-${{ matrix.os }}-nonfree.7z
+          path: ffmpeg-${{ needs.check.outputs['git-sha-short'] }}-${{ needs.check.outputs['helper-git-sha-short'] }}-${{ matrix.os }}-nonfree.7z
           retention-days: ${{ inputs.no_release && '0' || '1' }}
           compression-level: 0
           
@@ -183,9 +191,8 @@ jobs:
         run: |
           gh release create "${{ needs.build.outputs['date-time-after-tag'] }}-${{ needs.check.outputs['git-sha-short'] }}-${{ needs.check.outputs['helper-git-sha-short'] }}" \
           ffmpeg-${{ needs.check.outputs['git-sha-short'] }}-${{ needs.check.outputs['helper-git-sha-short'] }}-{win64,win32}-nonfree.7z \
-          -n "FFmpeg nonfree git-${{ needs.check.outputs['git-sha'] }} in ${{ needs.build.outputs['git-date'] }} built on ${{ needs.build.outputs['date-time-after'] }} started at ${{ split(needs.build.outputs['date-time-after'], ' ')[1] }} Using ${{ needs.check.outputs['helper-git-owner'] }}/ffmpeg-windows-build-helpers git-${{ needs.check.outputs['helper-git-sha'] }}" \
+          -n "FFmpeg nonfree git-${{ needs.check.outputs['git-sha'] }} in ${{ needs.build.outputs['git-date'] }} built on ${{ needs.build.outputs['date-time-after'] }} started at ${{ needs.build.outputs['date-time-after-time'] }} Using ${{ needs.check.outputs['helper-git-owner'] }}/ffmpeg-windows-build-helpers git-${{ needs.check.outputs['helper-git-sha'] }}" \
           -t "${{ needs.build.outputs['date-time-after'] }} ${{ needs.check.outputs['git-sha-short'] }}"
         env:
           GITHUB_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-           

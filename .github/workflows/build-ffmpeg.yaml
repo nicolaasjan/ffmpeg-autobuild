@@ -31,14 +31,22 @@ jobs:
           
       - name: Get ${{ vars.FWBH_REPOSITORY_OWNER }}/ffmpeg-windows-build-helpers latest commit
         id: ffmpeg-helper-info
+        # Provide a reliable default if the repository variable is not set.
+        # If vars.FWBH_REPOSITORY_OWNER is empty, use github.repository_owner as fallback.
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GIT_OWNER: ${{ vars.FWBH_REPOSITORY_OWNER != '' && vars.FWBH_REPOSITORY_OWNER || github.repository_owner }}
         run: |
-          git_owner=${{ vars.FWBH_REPOSITORY_OWNER }}
+          git_owner="$GIT_OWNER"
+          echo "Using git_owner=$git_owner" >&2
+          if [ -z "$git_owner" ]; then
+            echo "ERROR: repository owner is empty; set repository variable FWBH_REPOSITORY_OWNER or ensure github.repository_owner is available." >&2
+            exit 1
+          fi
           git_sha=$(gh api repos/$git_owner/ffmpeg-windows-build-helpers/commits/master -q .sha)
           echo git-owner=$git_owner >> $GITHUB_OUTPUT
           echo git-sha=$git_sha >> $GITHUB_OUTPUT
           echo git-sha-short=${git_sha::7} >> $GITHUB_OUTPUT
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
           
       - name: Get ffmpeg-autobuild latest build
         id: ffmpeg-autobuild-info
@@ -98,7 +106,7 @@ jobs:
         id: date-time-before
         run: echo date-time=$(date +'%Y-%m-%d %H:%M') >> $GITHUB_OUTPUT
         
-      - name: Compile FFmpeg ${{ needs.check.outputs.git-sha-short }} using local ffmpeg-windows-build-helpers script
+      - name: Compile FFmpeg ${{ needs.check.outputs['git-sha-short'] }} using local ffmpeg-windows-build-helpers script
         run: ./cross_compile_ffmpeg.sh --ffmpeg-source-dir=$GITHUB_WORKSPACE/ffmpeg-source --gcc-cpu-count=$(nproc) --disable-nonfree=n --sandbox-ok=y --compiler-flavors=${{ matrix.os }}
         
       - name: Get current date & time after build
@@ -196,3 +204,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
+          

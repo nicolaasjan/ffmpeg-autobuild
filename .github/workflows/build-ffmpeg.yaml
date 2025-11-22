@@ -29,7 +29,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           
-      - name: Get ${{ vars.FWBH_REPOSITORY_OWNER }}/ffmpeg-windows-build-helpers latest commit
+      - name: Get ${{ vars.FWBH_REPOSITORY_OWNER }}/ffmpeg-autobuild latest commit
         id: ffmpeg-helper-info
         # Provide a reliable default if the repository variable is not set.
         # If vars.FWBH_REPOSITORY_OWNER is empty, use github.repository_owner as fallback.
@@ -37,13 +37,41 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           GIT_OWNER: ${{ vars.FWBH_REPOSITORY_OWNER != '' && vars.FWBH_REPOSITORY_OWNER || github.repository_owner }}
         run: |
+          set -euo pipefail
           git_owner="$GIT_OWNER"
           echo "Using git_owner=$git_owner" >&2
           if [ -z "$git_owner" ]; then
             echo "ERROR: repository owner is empty; set repository variable FWBH_REPOSITORY_OWNER or ensure github.repository_owner is available." >&2
             exit 1
           fi
-          git_sha=$(gh api repos/$git_owner/ffmpeg-windows-build-helpers/commits/master -q .sha)
+
+          # Quick check whether repo exists / is accessible
+          if ! gh api "repos/$git_owner/ffmpeg-autobuild" >/dev/null 2>&1; then
+            echo "ERROR: repo $git_owner/ffmpeg-autobuild not found or inaccessible to the token." >&2
+            echo "Attempting to show API failure details for diagnosis:" >&2
+            gh api "repos/$git_owner/ffmpeg-autobuild" || true
+            exit 1
+          fi
+
+          # Try to get latest commit on default branch (returns object; take .sha)
+          git_sha=$(gh api "repos/$git_owner/ffmpeg-autobuild/commits" -q '.[0].sha' 2>/dev/null || true)
+
+          # If that didn't work, try explicit branch names
+          if [ -z "$git_sha" ]; then
+            for ref in main master; do
+              git_sha=$(gh api "repos/$git_owner/ffmpeg-autobuild/commits/$ref" -q .sha 2>/dev/null || true)
+              if [ -n "$git_sha" ]; then
+                echo "Found commit via ref: $ref" >&2
+                break
+              fi
+            done
+          fi
+
+          if [ -z "$git_sha" ]; then
+            echo "ERROR: could not determine latest commit for $git_owner/ffmpeg-autobuild" >&2
+            exit 1
+          fi
+
           echo git-owner=$git_owner >> $GITHUB_OUTPUT
           echo git-sha=$git_sha >> $GITHUB_OUTPUT
           echo git-sha-short=${git_sha::7} >> $GITHUB_OUTPUT
@@ -199,9 +227,8 @@ jobs:
         run: |
           gh release create "${{ needs.build.outputs['date-time-after-tag'] }}-${{ needs.check.outputs['git-sha-short'] }}-${{ needs.check.outputs['helper-git-sha-short'] }}" \
           ffmpeg-${{ needs.check.outputs['git-sha-short'] }}-${{ needs.check.outputs['helper-git-sha-short'] }}-{win64,win32}-nonfree.7z \
-          -n "FFmpeg nonfree git-${{ needs.check.outputs['git-sha'] }} in ${{ needs.build.outputs['git-date'] }} built on ${{ needs.build.outputs['date-time-after'] }} started at ${{ needs.build.outputs['date-time-after-time'] }} Using ${{ needs.check.outputs['helper-git-owner'] }}/ffmpeg-windows-build-helpers git-${{ needs.check.outputs['helper-git-sha'] }}" \
+          -n "FFmpeg nonfree git-${{ needs.check.outputs['git-sha'] }} in ${{ needs.build.outputs['git-date'] }} built on ${{ needs.build.outputs['date-time-after'] }} started at ${{ needs.build.outputs['date-time-after-time'] }} Using ${{ needs.check.outputs['helper-git-owner'] }}/ffmpeg-autobuild git-${{ needs.check.outputs['helper-git-sha'] }}" \
           -t "${{ needs.build.outputs['date-time-after'] }} ${{ needs.check.outputs['git-sha-short'] }}"
         env:
           GITHUB_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          

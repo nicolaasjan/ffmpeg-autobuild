@@ -31,8 +31,6 @@ jobs:
           
       - name: Get ${{ vars.FWBH_REPOSITORY_OWNER }}/ffmpeg-autobuild latest commit
         id: ffmpeg-helper-info
-        # Provide a reliable default if the repository variable is not set.
-        # If vars.FWBH_REPOSITORY_OWNER is empty, use github.repository_owner as fallback.
         env:
           GITHUB_TOKEN: ${{ github.token }}
           GIT_OWNER: ${{ vars.FWBH_REPOSITORY_OWNER != '' && vars.FWBH_REPOSITORY_OWNER || github.repository_owner }}
@@ -48,13 +46,12 @@ jobs:
           # Quick check whether repo exists / is accessible
           if ! gh api "repos/$git_owner/ffmpeg-autobuild" >/dev/null 2>&1; then
             echo "ERROR: repo $git_owner/ffmpeg-autobuild not found or inaccessible to the token." >&2
-            echo "Attempting to show API failure details for diagnosis:" >&2
             gh api "repos/$git_owner/ffmpeg-autobuild" || true
             exit 1
           fi
 
-          # Try to get latest commit on default branch (returns object; take .sha)
-          git_sha=$(gh api "repos/$git_owner/ffmpeg-autobuild/commits" -q '.[0].sha' 2>/dev/null || true)
+          # Try to get latest commit on default branch
+          git_sha="$(gh api "repos/$git_owner/ffmpeg-autobuild/commits" -q '.[0].sha' 2>/dev/null || true)"
 
           # If that didn't work, try explicit branch names
           if [ -z "$git_sha" ]; then
@@ -72,16 +69,52 @@ jobs:
             exit 1
           fi
 
-          echo git-owner=$git_owner >> $GITHUB_OUTPUT
-          echo git-sha=$git_sha >> $GITHUB_OUTPUT
-          echo git-sha-short=${git_sha::7} >> $GITHUB_OUTPUT
+          echo "git-owner=$git_owner" >> $GITHUB_OUTPUT
+          echo "git-sha=$git_sha" >> $GITHUB_OUTPUT
+          echo "git-sha-short=${git_sha::7}" >> $GITHUB_OUTPUT
           
       - name: Get ffmpeg-autobuild latest build
         id: ffmpeg-autobuild-info
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
-          tag_name=$(gh api repos/$GITHUB_REPOSITORY/releases/latest -q .tag_name)
-          echo git-sha=${tag_name:17:7} >> $GITHUB_OUTPUT
-          echo helper-git-sha=${tag_name:25:7} >> $GITHUB_OUTPUT
+          set -euo pipefail
+          tag_name=""
+          # Try latest release first (this returns 404 if no releases)
+          if tag_name="$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" -q .tag_name 2>/dev/null || true)"; then
+            if [ -n "$tag_name" ]; then
+              echo "Found latest release tag: $tag_name" >&2
+            fi
+          fi
+
+          # If no release, try tags list (most recent)
+          if [ -z "$tag_name" ]; then
+            echo "No releases found; trying repository tags..." >&2
+            tag_name="$(gh api "repos/$GITHUB_REPOSITORY/tags" -q '.[0].name' 2>/dev/null || true)"
+            if [ -n "$tag_name" ]; then
+              echo "Found tag: $tag_name" >&2
+            fi
+          fi
+
+          # If still no tag, try to use default-branch latest commit timestamp as fallback
+          if [ -z "$tag_name" ]; then
+            echo "No releases or tags found for $GITHUB_REPOSITORY. Outputs for git-sha/helper-git-sha will be empty." >&2
+            echo "git-sha=" >> $GITHUB_OUTPUT
+            echo "helper-git-sha=" >> $GITHUB_OUTPUT
+          else
+            # Safely extract substrings only if tag_name is long enough; otherwise set empty values
+            git_sha=""
+            helper_sha=""
+            if [ "${#tag_name}" -ge 24 ]; then
+              git_sha=${tag_name:17:7} || true
+            fi
+            if [ "${#tag_name}" -ge 32 ]; then
+              helper_sha=${tag_name:25:7} || true
+            fi
+            echo "Parsing tag_name='$tag_name' -> git-sha='$git_sha' helper-git-sha='$helper_sha'" >&2
+            echo "git-sha=$git_sha" >> $GITHUB_OUTPUT
+            echo "helper-git-sha=$helper_sha" >> $GITHUB_OUTPUT
+          fi
         env:
           GITHUB_TOKEN: ${{ github.token }}
           
@@ -134,7 +167,7 @@ jobs:
         id: date-time-before
         run: echo date-time=$(date +'%Y-%m-%d %H:%M') >> $GITHUB_OUTPUT
         
-      - name: Compile FFmpeg ${{ needs.check.outputs['git-sha-short'] }} using local ffmpeg-windows-build-helpers script
+      - name: Compile FFmpeg ${{ needs.check.outputs['git-sha-short'] }} using local ffmpeg-autobuild script
         run: ./cross_compile_ffmpeg.sh --ffmpeg-source-dir=$GITHUB_WORKSPACE/ffmpeg-source --gcc-cpu-count=$(nproc) --disable-nonfree=n --sandbox-ok=y --compiler-flavors=${{ matrix.os }}
         
       - name: Get current date & time after build

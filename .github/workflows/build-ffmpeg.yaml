@@ -10,6 +10,8 @@ on:
       no_release:
         description: Don't create release
         type: boolean
+  watch:
+    types: [started]
     
 concurrency:
   group: ${{ github.workflow }}

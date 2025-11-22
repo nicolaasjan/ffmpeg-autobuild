@@ -2433,6 +2433,7 @@ build_ffmpeg() {
     config_options+=" --enable-fontconfig"
     config_options+=" --enable-gmp"
     config_options+=" --enable-libass"
+	config_options+=" --enable-libbluray"
     config_options+=" --enable-libbs2b"
     config_options+=" --enable-libflite"
     config_options+=" --enable-libfreetype"

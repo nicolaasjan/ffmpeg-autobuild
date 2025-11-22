@@ -181,12 +181,11 @@ jobs:
           
       - name: Release FFmpeg archives
         run: |
-          gh release create "${{ needs.build.outputs.date-time-after-tag }}-${{ needs.check.outputs.git-sha-short }}-${{ needs.check.outputs.helper-git-sha-short }}" \
-          ffmpeg-${{ needs.check.outputs.git-sha-short }}-${{ needs.check.outputs.helper-git-sha-short }}-{win64,win32}-nonfree.7z \
-          -n "FFmpeg nonfree git-${{ needs.check.outputs.git-sha }} in ${{ needs.build.outputs.git-date }} built on ${{ needs.build.outputs.date-time-after }} started at ${{ needs.build.outputs.date-t[...]
-          Using ${{ needs.check.outputs.helper-git-owner }}/ffmpeg-windows-build-helpers git-${{ needs.check.outputs.helper-git-sha }}" \
-          -t "${{ needs.build.outputs.date-time-after }} ${{ needs.check.outputs.git-sha-short }}"
+          gh release create "${{ needs.build.outputs['date-time-after-tag'] }}-${{ needs.check.outputs['git-sha-short'] }}-${{ needs.check.outputs['helper-git-sha-short'] }}" \
+          ffmpeg-${{ needs.check.outputs['git-sha-short'] }}-${{ needs.check.outputs['helper-git-sha-short'] }}-{win64,win32}-nonfree.7z \
+          -n "FFmpeg nonfree git-${{ needs.check.outputs['git-sha'] }} in ${{ needs.build.outputs['git-date'] }} built on ${{ needs.build.outputs['date-time-after'] }} started at ${{ split(needs.build.outputs['date-time-after'], ' ')[1] }} Using ${{ needs.check.outputs['helper-git-owner'] }}/ffmpeg-windows-build-helpers git-${{ needs.check.outputs['helper-git-sha'] }}" \
+          -t "${{ needs.build.outputs['date-time-after'] }} ${{ needs.check.outputs['git-sha-short'] }}"
         env:
           GITHUB_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          
+           

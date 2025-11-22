@@ -1514,10 +1514,20 @@ build_libbluray() {
     sed -i.bak "s/dec_init/dec__init/g" src/libbluray/disc/*.{c,h}
     cd contrib/libudfread
       if [[ ! -f src/udfread.c.bak ]]; then
-        sed -i.bak "/WIN32$/,+4d" src/udfread.c # Fix WinXP incompatibility.
+        sed -i.bak "/WIN32$/,+4d" src/udfread.c
       fi
       if [[ ! -f src/udfread-version.h ]]; then
-        generic_configure # Generate 'udfread-version.h', or building Libbluray fails otherwise.
+        echo "Detected meson.build; building libudfread with Meson+Ninja"
+        # For cross builds, copy a local meson cross/properties file into this dir
+        if [[ $compiler_flavors != "native" ]]; then
+          get_local_meson_cross_with_propeties .
+        fi
+        # Use existing helper to configure & install with Meson + Ninja
+        generic_meson_ninja_install ""
+        # If Meson wrote the generated header into build/, copy it back to src/
+        if [[ -f build/src/udfread-version.h && ! -f src/udfread-version.h ]]; then
+          cp build/src/udfread-version.h src/udfread-version.h || true
+        fi
       fi
     cd ../..
     generic_configure "--disable-examples --disable-bdjava-jar"

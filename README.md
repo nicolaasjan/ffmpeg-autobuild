@@ -1,19 +1,19 @@
 # FFmpeg Latest Autobuilds for Windows
-![Build FFmpeg](https://github.com/AnimMouse/ffmpeg-autobuild/workflows/Build%20FFmpeg/badge.svg)
+![Build FFmpeg](https://github.com/nicolaasjan/ffmpeg-autobuild/workflows/Build%20FFmpeg/badge.svg)
 
 [FFmpeg](https://ffmpeg.org) latest nonfree git/snapshot/development/master/nightly builds with additional libraries/dependencies.
 
-[Downloads](https://github.com/AnimMouse/ffmpeg-autobuild/releases)
+[Downloads](https://github.com/nicolaasjan/ffmpeg-autobuild/releases)
 
 ### Schedule
-At 08:07 on Sunday weekly.
+At 08:07 on Sunday weekly or if someone starred this repository.
 
 #### Release Retention Policy
 Release builds are kept for two years.
 
 ffmpeg, ffprobe, and ffplay are included.
 
-Nonfree builds with Fraunhofer FDK AAC (libfdk_aac) & DeckLink.
+Nonfree builds with Fraunhofer FDK AAC (libfdk_aac).
 
 All builds are static.
 

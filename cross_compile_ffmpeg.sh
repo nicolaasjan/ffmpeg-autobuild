@@ -1577,20 +1577,44 @@ build_libsnappy() {
 }
 
 build_vamp_plugin() {
-  download_and_unpack_file https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/vamp-plugin-sdk/2.10.0-5/vamp-plugin-sdk_2.10.0.orig.tar.gz
-  mkdir -p vamp-plugin-sdk_2.10.0.orig
-  touch vamp-plugin-sdk_2.10.0.orig/unpacked.successfully
-  cd vamp-plugin-sdk-2.10.0
-    apply_patch file://$patch_dir/vamp-plugin-sdk-2.10_static-lib.diff
-    if [[ $compiler_flavors != "native" && ! -f src/vamp-sdk/PluginAdapter.cpp.bak ]]; then
-      sed -i.bak "s/#include <mutex>/#include <mingw.mutex.h>/" src/vamp-sdk/PluginAdapter.cpp
-    fi
-    if [[ ! -f configure.bak ]]; then # Fix for "'M_PI' was not declared in this scope" (see https://stackoverflow.com/a/29264536).
-      sed -i.bak "s/c++11/gnu++11/" configure
-      sed -i.bak "s/c++11/gnu++11/" Makefile.in
-    fi
-    do_configure "--host=$host_target --prefix=$mingw_w64_x86_64_prefix --disable-programs"
-    do_make "install-static" # No need for 'do_make_install', because 'install-static' already has install-instructions.
+  VAMP_URL="https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/vamp-plugin-sdk/2.10.0-5/vamp-plugin-sdk_2.10.0.orig.tar.gz"
+  VAMP_TARBALL="vamp-plugin-sdk_2.10.0.orig.tar.gz"
+  VAMP_SOURCE_DIR="vamp-plugin-sdk-2.10.0"
+  VAMP_MARKER_DIR="vamp-plugin-sdk_2.10.0.orig"
+
+  if [ ! -d "$VAMP_SOURCE_DIR" ]; then
+    echo "Downloading and unzipping VAMP Plugin SDK manually (fixing folder name mismatch)..."
+    
+    if [[ -f $VAMP_TARBALL ]]; then rm "$VAMP_TARBALL" || exit 1; fi
+    curl -4 "$VAMP_URL" --retry 50 -O -L --fail || echo_and_exit "unable to download $VAMP_URL"
+    
+    echo "unzipping $VAMP_TARBALL ..."
+    tar -xf "$VAMP_TARBALL" || exit 1
+    
+    rm "$VAMP_TARBALL" || exit 1
+  fi
+  
+  if [ ! -d "$VAMP_MARKER_DIR" ]; then
+      mkdir -p "$VAMP_MARKER_DIR" || exit 1
+      touch "$VAMP_MARKER_DIR/unpacked.successfully" || exit 1
+  fi
+  
+  cd "$VAMP_SOURCE_DIR"
+  
+  apply_patch file://$patch_dir/vamp-plugin-sdk-2.10_static-lib.diff
+
+  if [[ $compiler_flavors != "native" && ! -f src/vamp-sdk/PluginAdapter.cpp.bak ]]; then
+    sed -i.bak "s/#include <mutex>/#include <mingw.mutex.h>/" src/vamp-sdk/PluginAdapter.cpp
+  fi
+  
+  if [[ ! -f configure.bak ]]; then # Fix for "'M_PI' was not declared in this scope" (see https://stackoverflow.com/a/29264536).
+    sed -i.bak "s/c++11/gnu++11/" configure
+    sed -i.bak "s/c++11/gnu++11/" Makefile.in
+  fi
+  
+  do_configure "--host=$host_target --prefix=$mingw_w64_x86_64_prefix --disable-programs"
+  do_make "install-static" # No need for 'do_make_install', because 'install-static' already has install-instructions.
+  
   cd ..
 }
 

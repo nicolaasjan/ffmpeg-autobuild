@@ -1578,6 +1578,7 @@ build_libsnappy() {
 
 build_vamp_plugin() {
   download_and_unpack_file https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/vamp-plugin-sdk/2.10.0-5/vamp-plugin-sdk_2.10.0.orig.tar.gz
+  mkdir -p vamp-plugin-sdk_2.10.0.orig
   cd vamp-plugin-sdk-2.10.0
     apply_patch file://$patch_dir/vamp-plugin-sdk-2.10_static-lib.diff
     if [[ $compiler_flavors != "native" && ! -f src/vamp-sdk/PluginAdapter.cpp.bak ]]; then

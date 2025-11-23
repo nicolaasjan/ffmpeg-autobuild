@@ -2611,9 +2611,9 @@ build_ffmpeg() {
     if [[ "$non_free" = "y" ]]; then
       config_options+=" --enable-nonfree --enable-libfdk-aac"
 
-      if [[ $compiler_flavors != "native" ]]; then
-        config_options+=" --enable-decklink" # Error finding rpc.h in native builds even if it's available
-      fi
+#      if [[ $compiler_flavors != "native" ]]; then
+#        config_options+=" --enable-decklink" # Error finding rpc.h in native builds even if it's available
+#      fi
       # other possible options: --enable-openssl [unneeded since we already use gnutls]
     fi
 

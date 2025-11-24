@@ -4,5 +4,5 @@ updates:
     directory: /
     schedule:
       interval: weekly
-      day: sunday
-      time: '11:07'
+      day: tuesday
+      time: '07:07'

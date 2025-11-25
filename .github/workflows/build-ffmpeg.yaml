@@ -138,10 +138,10 @@ jobs:
         
     steps:
       - name: Checkout this repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Checkout FFmpeg
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           repository: FFmpeg/FFmpeg
           ref: ${{ needs.check.outputs.git-sha }}
